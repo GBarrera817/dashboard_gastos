@@ -1,234 +1,501 @@
 <!DOCTYPE html>
-  <html lang="es">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <link rel="stylesheet" href="style.css">
-  </head>
-  
-  <body>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
 
-    <!-- PANTALLA DE CONFIGURACIÓN -->
-    <div id="setupScreen">
-      <div class="setup-wrap">
-        <div class="setup-logo">💰</div>
-        <div class="setup-title">Dashboard de Gastos</div>
-        <div class="setup-sub">Bienvenido. Antes de comenzar necesitas configurar tu propia base de datos en Google Sheets. Solo toma unos minutos.</div>
+<body>
 
-        <div class="step">
-          <div class="step-title"><span class="step-num">1</span> Crea tu Google Sheet</div>
-          <div class="step-body">
-            <ol>
-              <li>Ve a <a href="https://sheets.new" target="_blank" style="color:#534ab7"><strong>sheets.new</strong></a> y crea una hoja nueva</li>
-              <li>Nómbrala como quieras, ej: <code>Mis Gastos</code></li>
-              <li>Copia el <strong>ID de la hoja</strong> desde la URL:<br>
-                <code>https://docs.google.com/spreadsheets/d/<strong>[ESTE ES EL ID]</strong>/edit</code>
-              </li>
-            </ol>
-            <div style="margin-top:8px;padding:8px 10px;background:#eaf3de;border-radius:6px;color:#3b6d11;font-size:12px">
-              ✓ Las hojas se crearán automáticamente al ejecutar el setup del Apps Script
-            </div>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-title"><span class="step-num">2</span> Configura Google Apps Script</div>
-          <div class="step-body">
-            <ol>
-              <li>En tu Google Sheet ve a <strong>Extensiones → Apps Script</strong></li>
-              <li>Borra el código existente y pega el código del archivo <code>apps_script.gs</code> del <a href="https://github.com/GBarrera817/dashboard_gastos" target="_blank" style="color:#534ab7">repositorio</a></li>
-              <li>Reemplaza <code>SHEET_ID</code> con el ID copiado en el paso anterior</li>
-              <li>Reemplaza <code>EMAIL_DESTINO</code> con tu correo Gmail</li>
-              <li>Guarda el proyecto (Ctrl+S)</li>
-              <li><strong>Ejecuta la función <code>setup</code></strong> — esto crea todas las hojas automáticamente:
-                <ul>
-                  <li>Selecciona <code>setup</code> en el selector de funciones</li>
-                  <li>Clic en ▶️ Ejecutar</li>
-                  <li>Autoriza los permisos que solicite</li>
-                </ul>
-              </li>
-              <li>Ve a <strong>Implementar → Nueva implementación</strong>
-                <ul>
-                  <li>Tipo: <strong>Aplicación web</strong></li>
-                  <li>Ejecutar como: <strong>Yo</strong></li>
-                  <li>Acceso: <strong>Cualquier persona</strong></li>
-                </ul>
-              </li>
-              <li>Copia la URL que termina en <code>/exec</code></li>
-            </ol>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-title"><span class="step-num">3</span> Pega tu URL de Apps Script</div>
-          <div class="step-body">
-            Ingresa la URL de tu implementación de Apps Script:
-            <div class="url-input-wrap">
-              <input type="text" id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec">
-            </div>
-            <div class="setup-err" id="setupErr">Por favor ingresa una URL válida de Apps Script.</div>
-          </div>
-        </div>
-
-        <button class="btn-primary" onclick="saveSetup()">Comenzar →</button>
-        <div class="setup-footer">Tus datos se guardan en tu propio Google Sheet · Nadie más tiene acceso</div>
-      </div>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div id="app" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
-        <h2>Dashboard de gastos</h2>
-        <div style="display:flex;gap:4px">
-          <button class="settings-btn" onclick="openSettings()" title="Configuración">⚙️</button>
-          <button class="dark-btn" id="darkBtn" onclick="toggleDark()" title="Modo oscuro">🌙</button>
-        </div>
-      </div>
-      <p class="sub">Sincronizado con Google Sheets en tiempo real</p>
-      <div class="sbar"><div class="sdot pnd" id="sdot"></div><span id="smsg">Conectando...</span><button onclick="load()" style="margin-left:auto;padding:3px 12px;font-size:11px;border:1px solid var(--input-border);border-radius:6px;background:var(--btn-bg);cursor:pointer;color:var(--text)">↻ Actualizar</button></div>
-      <div class="mnav"><button onclick="chM(-1)">&#8592;</button><span class="mlbl" id="mLbl"></span><button onclick="chM(1)">&#8594;</button></div>
-      <div id="alertArea"></div>
-      <div class="tabs">
-        <div class="tab active" onclick="showTab('resumen')">Resumen</div>
-        <div class="tab" onclick="showTab('gastos')">Gastos</div>
-        <div class="tab" onclick="showTab('tc')">Tarjetas TC</div>
-        <div class="tab" onclick="showTab('config')">⚙️ Config</div>
+  <!-- ============================================================
+       PANTALLA DE CONFIGURACIÓN INICIAL (onboarding)
+       Se muestra a pantalla completa si no hay una URL de Apps
+       Script guardada en localStorage. Guía al usuario por 3 pasos:
+         1. Crear el Google Sheet y guardar su ID
+         2. Configurar el Apps Script (instrucciones + enlace dinámico)
+         3. Pegar la URL del deployment del Apps Script
+       ============================================================ -->
+  <div id="setupScreen">
+    <div class="setup-wrap">
+      <div class="setup-logo">💰</div>
+      <div class="setup-title">Dashboard de Gastos</div>
+      <div class="setup-sub">
+        Bienvenido. Configura tu propia base de datos en Google Sheets siguiendo estos 3 pasos.
+        Solo toma unos minutos y tus datos serán completamente privados.
       </div>
 
-      <!-- RESUMEN -->
-      <div class="tab-content active" id="tab-resumen">
-        <div class="card">
-          <div class="ct">Presupuesto mensual</div>
-          <div id="bpView" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:13px;color:var(--text2)">Presupuesto definido:</span>
-              <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:16px;font-weight:500" id="bpValLabel"></span>
-                <button onclick="editBudget()" style="font-size:11px;padding:3px 10px;border:1px solid var(--input-border);border-radius:6px;background:var(--btn-bg);cursor:pointer;color:#534ab7">✏️ Editar</button>
+      <!-- Indicador de progreso -->
+      <div class="setup-progress">
+        <div class="setup-step-indicator active" id="ind-1">1</div>
+        <div class="setup-progress-line"></div>
+        <div class="setup-step-indicator" id="ind-2">2</div>
+        <div class="setup-progress-line"></div>
+        <div class="setup-step-indicator" id="ind-3">3</div>
+      </div>
+
+      <!-- ── PASO 1: Google Sheet ── -->
+      <div class="step" id="step-1">
+        <div class="step-title">
+          <span class="step-num">1</span> Crea tu Google Sheet
+        </div>
+        <div class="step-body">
+          <ol>
+            <li>
+              Ve a <a href="https://sheets.new" target="_blank" rel="noopener">
+                <strong>sheets.new</strong>
+              </a> para crear una hoja de cálculo nueva en tu cuenta de Google.
+            </li>
+            <li>
+              Puedes nombrarla como quieras, por ejemplo: <code>Mis Gastos</code>.
+            </li>
+            <li>
+              Copia el <strong>ID de la hoja</strong> desde la barra de direcciones del navegador.
+              Es la parte que aparece entre <code>/d/</code> y <code>/edit</code>:
+              <div class="setup-url-example">
+                https://docs.google.com/spreadsheets/d/<strong class="highlight">[ESTE ES EL ID]</strong>/edit
               </div>
+            </li>
+            <li>Pega el ID aquí abajo:</li>
+          </ol>
+
+          <div class="setup-input-group">
+            <input
+              type="text"
+              id="setupSheetId"
+              class="setup-input"
+              placeholder="Ej: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+              oninput="onSheetIdInput()"
+            >
+            <div class="setup-err" id="errSheetId">
+              Por favor ingresa un ID válido de Google Sheet.
             </div>
-            <div class="pbg"><div class="pfill" id="bpFill"></div></div>
-            <div class="pmeta"><span id="bpSpent"></span><span id="bpRemain"></span></div>
-          </div>
-          <div id="bpEdit">
-            <div id="bpNone" style="font-size:12px;color:var(--text4);margin-bottom:8px">Sin presupuesto definido.</div>
-            <div class="birow">
-              <input type="number" id="budgetInput" placeholder="Presupuesto en CLP" min="0" step="1000">
-              <button onclick="saveBudget()">Guardar</button>
-            </div>
-            <div id="bpCancelRow" style="display:none;text-align:right;margin-top:4px">
-              <button onclick="cancelEditBudget()" style="font-size:11px;padding:3px 10px;border:1px solid var(--input-border);border-radius:6px;background:var(--btn-bg);cursor:pointer;color:var(--text2)">Cancelar</button>
+            <div class="setup-hint" id="hintSheetId" style="display:none">
+              ✓ Las 5 hojas necesarias se crearán automáticamente más adelante.
             </div>
           </div>
         </div>
-        <div class="mets">
-          <div class="met"><div class="ml">Total gastado</div><div class="mv" id="mTotal">$0</div><div class="ms" id="mCount">0 transacciones</div></div>
-          <div class="met"><div class="ml">Gastos directos</div><div class="mv" id="mGastos">$0</div><div class="ms">sin TC</div></div>
-          <div class="met"><div class="ml">Pagos TC</div><div class="mv" id="mPagosTC">$0</div><div class="ms">este mes</div></div>
-          <div class="met"><div class="ml">Mayor categoría</div><div class="mv" id="mTop" style="font-size:14px">—</div><div class="ms" id="mTopAmt">—</div></div>
-        </div>
-        <div class="g2">
-          <div class="card" style="margin-bottom:0"><div class="ct">Desglose por categoría</div><div class="lgd" id="lgd"></div><div class="cw"><canvas id="pie"></canvas></div></div>
-          <div class="card" style="margin-bottom:0"><div class="ct">Distribución</div><div id="bars"></div></div>
+
+        <div class="setup-nav">
+          <span></span>
+          <button class="btn-primary" onclick="goStep(2)">Siguiente →</button>
         </div>
       </div>
 
-      <!-- GASTOS -->
-      <div class="tab-content" id="tab-gastos">
-        <div class="g2">
-          <div class="card" style="margin-bottom:0">
-            <div class="ct">Agregar gasto</div>
-            <div class="fg"><label>Categoría</label>
-              <select id="inCat" onchange="toggleTC()">
-                <option>Vivienda / Arriendo</option><option>Alimentación</option><option>Transporte</option>
-                <option>Entretenimiento / Hobbies</option><option>Salud</option><option>Educación</option>
-                <option>Ahorro / Inversión</option><option>Transferencias</option><option>Tarjeta de Crédito</option><option>Otros</option>
-              </select>
-            </div>
-            <div class="fg"><label>Descripción</label><input type="text" id="inDesc" placeholder="Ej: Supermercado Líder"></div>
-            <div class="fg"><label id="aLbl">Monto (CLP)</label>
-              <div class="amt-wrap"><span class="amt-prefix">$</span><input type="text" id="inAmt" placeholder="0" oninput="fmtAmt(this)" inputmode="numeric"></div>
-            </div>
-            <!-- Campos que solo aplican cuando la categoría es "Tarjeta de Crédito" (ver toggleTC()) -->
-            <div class="tcbox" id="tcBox" style="display:none">
-              <div class="fg"><label>Tarjeta</label><select id="inTarjeta"></select></div>
-              <div class="fg"><label>Fecha de compra</label><input type="date" id="inTCFecha"></div>
-              <div class="fg"><label>Número de cuotas</label><input type="number" id="inCuotas" placeholder="Ej: 12" min="1" max="72" oninput="updHint()"></div>
-              <div class="tch" id="cHint"></div>
-              <div id="cicloInfo" style="margin-top:8px;font-size:11px;padding:6px 8px;border-radius:6px;background:#e6f1fb;color:#185fa5;display:none"></div>
-            </div>
-            <div class="fg" id="dGrp"><label>Fecha</label><input type="date" id="inDate"></div>
-            <button class="btn" id="btnAdd" onclick="addExp()">+ Agregar gasto</button>
+      <!-- ── PASO 2: Apps Script ── -->
+      <div class="step" id="step-2" style="display:none">
+        <div class="step-title">
+          <span class="step-num">2</span> Configura Google Apps Script
+        </div>
+        <div class="step-body">
+
+          <div class="setup-callout">
+            💡 <strong>¿Dónde crear el proyecto?</strong><br>
+            El Apps Script se crea directamente <strong>desde tu Google Sheet</strong>,
+            no en Google Cloud Console. Sigue estos pasos:
           </div>
-          <div class="card" style="margin-bottom:0">
-            <div class="ct">Transacciones del mes</div>
-            <div class="elist" id="expList"><div class="empty">No hay gastos este mes.</div></div>
+
+          <ol>
+            <li>
+              Abre tu Google Sheet y ve al menú
+              <strong>Extensiones → Apps Script</strong>.
+              <br>
+              <span class="step-sub">
+                Se abrirá el editor de Apps Script en una nueva pestaña,
+                ya vinculado a tu hoja.
+              </span>
+            </li>
+            <li>
+              En el editor, borra todo el código que aparece por defecto
+              y pega el código del archivo <code>apps_script.gs</code> disponible en el
+              <a href="https://github.com/GBarrera817/dashboard_gastos" target="_blank" rel="noopener">
+                repositorio del proyecto
+              </a>.
+            </li>
+            <li>
+              Busca la línea que dice <code>const SHEET_ID = '';</code> y reemplaza
+              el valor con el ID de tu hoja:<br>
+              <code>const SHEET_ID = '<span id="sheetIdPreview" class="highlight">TU_ID_AQUÍ</span>';</code>
+            </li>
+            <li>
+              Busca la línea <code>const EMAIL_DESTINO = '';</code> y reemplaza el valor
+              con tu correo Gmail para recibir los reportes mensuales.
+            </li>
+            <li>Guarda el proyecto con <kbd>Ctrl</kbd> + <kbd>S</kbd>.</li>
+            <li>
+              <strong>Ejecuta la función <code>setup</code></strong> para crear
+              automáticamente todas las hojas necesarias en tu Sheet:
+              <ul>
+                <li>En el selector de funciones (arriba del botón ▶️), elige <code>setup</code>.</li>
+                <li>Haz clic en <strong>▶️ Ejecutar</strong>.</li>
+                <li>
+                  Google te pedirá autorizar permisos la primera vez — acepta todos
+                  para que el script pueda leer/escribir en tu Sheet y enviar correos.
+                </li>
+              </ul>
+            </li>
+            <li>
+              Una vez ejecutado el setup, despliega el script como <strong>Web App</strong>:
+              <ul>
+                <li>Ve a <strong>Implementar → Nueva implementación</strong>.</li>
+                <li>En "Tipo de implementación" elige <strong>Aplicación web</strong>.</li>
+                <li>Configura:
+                  <ul>
+                    <li><strong>Ejecutar como:</strong> Yo (tu cuenta de Google)</li>
+                    <li><strong>Quién tiene acceso:</strong> Cualquier persona</li>
+                  </ul>
+                </li>
+                <li>Haz clic en <strong>Implementar</strong> y copia la URL generada.</li>
+              </ul>
+            </li>
+          </ol>
+
+          <!-- Enlace dinámico que se genera al tener el Sheet ID del paso 1 -->
+          <div id="sheetLinkWrap" style="display:none">
+            <a id="sheetLink" href="#" target="_blank" rel="noopener" class="btn-sheet-link">
+              📄 Abrir mi Google Sheet
+            </a>
           </div>
+
+        </div>
+
+        <div class="setup-nav">
+          <button class="btn-secondary" onclick="goStep(1)">← Atrás</button>
+          <button class="btn-primary" onclick="goStep(3)">Siguiente →</button>
         </div>
       </div>
 
-      <!-- TC -->
-      <div class="tab-content" id="tab-tc">
-        <div class="card">
-          <div class="ct">Registrar pago de tarjeta</div>
-          <div class="pago-form">
-            <div class="fg"><label>Tarjeta</label><select id="pagoTarjeta"></select></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div class="fg"><label>Monto pagado (CLP)</label><input type="number" id="pagoMonto" placeholder="Ej: 85000" min="0" step="1000"></div>
-              <div class="fg"><label>Fecha de pago</label><input type="date" id="pagoFecha"></div>
-            </div>
-            <div class="fg"><label>Ciclo que estás pagando</label><input type="month" id="pagoCiclo"></div>
-            <button class="btn" id="btnPago" onclick="registrarPago()" style="background:#eaf3de;border-color:#639922;color:#3b6d11">✓ Registrar pago</button>
-            <div class="rst" id="pagoSt"></div>
-          </div>
+      <!-- ── PASO 3: URL del Apps Script ── -->
+      <div class="step" id="step-3" style="display:none">
+        <div class="step-title">
+          <span class="step-num">3</span> Pega la URL de tu Apps Script
         </div>
-        <div class="card">
-          <div class="ct">Mis tarjetas</div>
-          <div id="tarjetasList"></div>
-          <div class="add-tc-card" onclick="showAddTarjeta()">+ Agregar tarjeta</div>
-          <div id="addTarjetaForm" style="display:none;margin-top:10px;background:var(--bg2);border-radius:8px;padding:12px">
-            <div class="fg"><label>Nombre del banco</label><input type="text" id="newTCName" placeholder="Ej: Banco Estado"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div class="fg"><label>Día de cierre</label><input type="number" id="newTCCierre" min="1" max="31"></div>
-              <div class="fg"><label>Día de pago</label><input type="number" id="newTCPago" min="1" max="31"></div>
+        <div class="step-body">
+          <p>
+            Una vez que hayas desplegado el Apps Script como Web App,
+            copia la URL que termina en <code>/exec</code> y pégala aquí:
+          </p>
+
+          <div class="setup-input-group">
+            <input
+              type="text"
+              id="setupUrl"
+              class="setup-input"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              oninput="onUrlInput()"
+            >
+            <div class="setup-err" id="errUrl">
+              Por favor ingresa una URL válida de Apps Script (debe terminar en /exec).
             </div>
-            <div style="display:flex;gap:8px;margin-top:4px">
-              <button class="btn" onclick="addTarjeta()" style="flex:1">Guardar tarjeta</button>
-              <button onclick="document.getElementById('addTarjetaForm').style.display='none'" style="padding:9px 14px;border:1px solid var(--input-border);border-radius:8px;background:var(--btn-bg);cursor:pointer;font-size:13px;color:var(--text)">Cancelar</button>
+            <div class="setup-hint" id="hintUrl" style="display:none">
+              ✓ URL válida. ¡Ya puedes comenzar!
             </div>
           </div>
+
+          <div class="setup-callout" style="margin-top:12px">
+            🔒 Tu URL se guarda solo en este navegador (localStorage).
+            Nadie más tiene acceso a tus datos.
+          </div>
         </div>
-        <div class="card"><div class="ct">Compromisos por ciclo de facturación</div><div id="compromisosTCView"><div class="empty">No hay compromisos TC.</div></div></div>
-        <div class="card"><div class="ct">Historial de cuotas activas</div><div id="tcList"><div class="empty">No hay compras en cuotas.</div></div></div>
-        <div class="card"><div class="ct">Historial de pagos realizados</div><div id="historialPagos"><div class="empty">No hay pagos registrados.</div></div></div>
+
+        <div class="setup-nav">
+          <button class="btn-secondary" onclick="goStep(2)">← Atrás</button>
+          <button class="btn-primary" id="btnComenzar" onclick="saveSetup()">Comenzar →</button>
+        </div>
       </div>
 
-      <!-- CONFIG -->
-      <div class="tab-content" id="tab-config">
-        <div class="card">
-          <div class="ct">Configuración de Apps Script</div>
-          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Aquí puedes cambiar la URL de tu Apps Script si necesitas actualizarla.</p>
-          <div class="fg"><label>URL de Apps Script</label>
-            <input type="text" id="configUrl" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:monospace;font-size:12px">
+      <div class="setup-footer">
+        Tus datos se guardan en tu propio Google Sheet · Nadie más tiene acceso
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DASHBOARD PRINCIPAL
+       Oculto hasta que el setup esté completo (checkSetup()).
+       ============================================================ -->
+  <div id="app" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
+      <h2>Dashboard de gastos</h2>
+      <div style="display:flex;gap:4px">
+        <button class="settings-btn" onclick="openSettings()" title="Configuración">⚙️</button>
+        <button class="dark-btn" id="darkBtn" onclick="toggleDark()" title="Modo oscuro">🌙</button>
+      </div>
+    </div>
+    <p class="sub">Sincronizado con Google Sheets en tiempo real</p>
+    <div class="sbar">
+      <div class="sdot pnd" id="sdot"></div>
+      <span id="smsg">Conectando...</span>
+      <button
+        onclick="load()"
+        style="margin-left:auto;padding:3px 12px;font-size:11px;border:1px solid var(--input-border);border-radius:6px;background:var(--btn-bg);cursor:pointer;color:var(--text)"
+      >↻ Actualizar</button>
+    </div>
+    <div class="mnav">
+      <button onclick="chM(-1)">&#8592;</button>
+      <span class="mlbl" id="mLbl"></span>
+      <button onclick="chM(1)">&#8594;</button>
+    </div>
+    <div id="alertArea"></div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('resumen')">Resumen</div>
+      <div class="tab" onclick="showTab('gastos')">Gastos</div>
+      <div class="tab" onclick="showTab('tc')">Tarjetas TC</div>
+      <div class="tab" onclick="showTab('config')">⚙️ Config</div>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="tab-content active" id="tab-resumen">
+      <div class="card">
+        <div class="ct">Presupuesto mensual</div>
+        <div id="bpView" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:13px;color:var(--text2)">Presupuesto definido:</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:16px;font-weight:500" id="bpValLabel"></span>
+              <button
+                onclick="editBudget()"
+                style="font-size:11px;padding:3px 10px;border:1px solid var(--input-border);border-radius:6px;background:var(--btn-bg);cursor:pointer;color:#534ab7"
+              >✏️ Editar</button>
+            </div>
           </div>
-          <button class="btn" onclick="saveConfigUrl()" style="background:#534ab7;color:#fff;border-color:#534ab7">Guardar URL</button>
-          <div class="rst" id="configSt"></div>
+          <div class="pbg"><div class="pfill" id="bpFill"></div></div>
+          <div class="pmeta"><span id="bpSpent"></span><span id="bpRemain"></span></div>
         </div>
-        <div class="card">
-          <div class="ct">Reporte mensual</div>
-          <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Envía el reporte del mes a tu Gmail.</p>
-          <button class="btnrep" id="btnRep" onclick="sendReport()">&#9993; Enviar reporte por Gmail</button>
-          <div class="rst" id="repSt"></div>
+        <div id="bpEdit">
+          <div id="bpNone" style="font-size:12px;color:var(--text4);margin-bottom:8px">
+            Sin presupuesto definido.
+          </div>
+          <div class="birow">
+            <input type="number" id="budgetInput" placeholder="Presupuesto en CLP" min="0" step="1000">
+            <button onclick="saveBudget()">Guardar</button>
+          </div>
+          <div id="bpCancelRow" style="display:none;text-align:right;margin-top:4px">
+            <button
+              onclick="cancelEditBudget()"
+              style="font-size:11px;padding:3px 10px;border:1px solid var(--input-border);border-radius:6px;background:var(--btn-bg);cursor:pointer;color:var(--text2)"
+            >Cancelar</button>
+          </div>
         </div>
-        <div class="card">
-          <div class="ct" style="color:#a32d2d">Zona de peligro</div>
-          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Borra la configuración y vuelve a la pantalla de inicio.</p>
-          <button class="btn" onclick="resetConfig()" style="border-color:#e24b4a;color:#a32d2d">Borrar configuración</button>
+      </div>
+      <div class="mets">
+        <div class="met">
+          <div class="ml">Total gastado</div>
+          <div class="mv" id="mTotal">$0</div>
+          <div class="ms" id="mCount">0 transacciones</div>
+        </div>
+        <div class="met">
+          <div class="ml">Gastos directos</div>
+          <div class="mv" id="mGastos">$0</div>
+          <div class="ms">sin TC</div>
+        </div>
+        <div class="met">
+          <div class="ml">Pagos TC</div>
+          <div class="mv" id="mPagosTC">$0</div>
+          <div class="ms">este mes</div>
+        </div>
+        <div class="met">
+          <div class="ml">Mayor categoría</div>
+          <div class="mv" id="mTop" style="font-size:14px">—</div>
+          <div class="ms" id="mTopAmt">—</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card" style="margin-bottom:0">
+          <div class="ct">Desglose por categoría</div>
+          <div class="lgd" id="lgd"></div>
+          <div class="cw"><canvas id="pie"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="ct">Distribución</div>
+          <div id="bars"></div>
         </div>
       </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-    <script src="app.js"></script>
-  </body>
+    <!-- GASTOS -->
+    <div class="tab-content" id="tab-gastos">
+      <div class="g2">
+        <div class="card" style="margin-bottom:0">
+          <div class="ct">Agregar gasto</div>
+          <div class="fg">
+            <label>Categoría</label>
+            <select id="inCat" onchange="toggleTC()">
+              <option>Vivienda / Arriendo</option>
+              <option>Alimentación</option>
+              <option>Transporte</option>
+              <option>Entretenimiento / Hobbies</option>
+              <option>Salud</option>
+              <option>Educación</option>
+              <option>Ahorro / Inversión</option>
+              <option>Transferencias</option>
+              <option>Tarjeta de Crédito</option>
+              <option>Otros</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Descripción</label>
+            <input type="text" id="inDesc" placeholder="Ej: Supermercado Líder">
+          </div>
+          <div class="fg">
+            <label id="aLbl">Monto (CLP)</label>
+            <div class="amt-wrap">
+              <span class="amt-prefix">$</span>
+              <input type="text" id="inAmt" placeholder="0" oninput="fmtAmt(this)" inputmode="numeric">
+            </div>
+          </div>
+          <!-- Campos que solo aplican cuando la categoría es "Tarjeta de Crédito" -->
+          <div class="tcbox" id="tcBox" style="display:none">
+            <div class="fg">
+              <label>Tarjeta</label>
+              <select id="inTarjeta"></select>
+            </div>
+            <div class="fg">
+              <label>Fecha de compra</label>
+              <input type="date" id="inTCFecha">
+            </div>
+            <div class="fg">
+              <label>Número de cuotas</label>
+              <input type="number" id="inCuotas" placeholder="Ej: 12" min="1" max="72" oninput="updHint()">
+            </div>
+            <div class="tch" id="cHint"></div>
+            <div id="cicloInfo" style="margin-top:8px;font-size:11px;padding:6px 8px;border-radius:6px;background:#e6f1fb;color:#185fa5;display:none"></div>
+          </div>
+          <div class="fg" id="dGrp">
+            <label>Fecha</label>
+            <input type="date" id="inDate">
+          </div>
+          <button class="btn" id="btnAdd" onclick="addExp()">+ Agregar gasto</button>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="ct">Transacciones del mes</div>
+          <div class="elist" id="expList">
+            <div class="empty">No hay gastos este mes.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TC -->
+    <div class="tab-content" id="tab-tc">
+      <div class="card">
+        <div class="ct">Registrar pago de tarjeta</div>
+        <div class="pago-form">
+          <div class="fg">
+            <label>Tarjeta</label>
+            <select id="pagoTarjeta"></select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="fg">
+              <label>Monto pagado (CLP)</label>
+              <input type="number" id="pagoMonto" placeholder="Ej: 85000" min="0" step="1000">
+            </div>
+            <div class="fg">
+              <label>Fecha de pago</label>
+              <input type="date" id="pagoFecha">
+            </div>
+          </div>
+          <div class="fg">
+            <label>Ciclo que estás pagando</label>
+            <input type="month" id="pagoCiclo">
+          </div>
+          <button
+            class="btn"
+            id="btnPago"
+            onclick="registrarPago()"
+            style="background:#eaf3de;border-color:#639922;color:#3b6d11"
+          >✓ Registrar pago</button>
+          <div class="rst" id="pagoSt"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Mis tarjetas</div>
+        <div id="tarjetasList"></div>
+        <div class="add-tc-card" onclick="showAddTarjeta()">+ Agregar tarjeta</div>
+        <div id="addTarjetaForm" style="display:none;margin-top:10px;background:var(--bg2);border-radius:8px;padding:12px">
+          <div class="fg">
+            <label>Nombre del banco</label>
+            <input type="text" id="newTCName" placeholder="Ej: Banco Estado">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="fg">
+              <label>Día de cierre</label>
+              <input type="number" id="newTCCierre" min="1" max="31">
+            </div>
+            <div class="fg">
+              <label>Día de pago</label>
+              <input type="number" id="newTCPago" min="1" max="31">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn" onclick="addTarjeta()" style="flex:1">Guardar tarjeta</button>
+            <button
+              onclick="document.getElementById('addTarjetaForm').style.display='none'"
+              style="padding:9px 14px;border:1px solid var(--input-border);border-radius:8px;background:var(--btn-bg);cursor:pointer;font-size:13px;color:var(--text)"
+            >Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Compromisos por ciclo de facturación</div>
+        <div id="compromisosTCView"><div class="empty">No hay compromisos TC.</div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Historial de cuotas activas</div>
+        <div id="tcList"><div class="empty">No hay compras en cuotas.</div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Historial de pagos realizados</div>
+        <div id="historialPagos"><div class="empty">No hay pagos registrados.</div></div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="tab-content" id="tab-config">
+      <div class="card">
+        <div class="ct">Configuración de Apps Script</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Aquí puedes cambiar la URL de tu Apps Script si necesitas actualizarla.
+        </p>
+        <div class="fg">
+          <label>URL de Apps Script</label>
+          <input
+            type="text"
+            id="configUrl"
+            placeholder="https://script.google.com/macros/s/.../exec"
+            style="font-family:monospace;font-size:12px"
+          >
+        </div>
+        <button
+          class="btn"
+          onclick="saveConfigUrl()"
+          style="background:#534ab7;color:#fff;border-color:#534ab7"
+        >Guardar URL</button>
+        <div class="rst" id="configSt"></div>
+      </div>
+      <div class="card">
+        <div class="ct">Reporte mensual</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:12px">
+          Envía el reporte del mes a tu Gmail.
+        </p>
+        <button class="btnrep" id="btnRep" onclick="sendReport()">
+          &#9993; Enviar reporte por Gmail
+        </button>
+        <div class="rst" id="repSt"></div>
+      </div>
+      <div class="card">
+        <div class="ct" style="color:#a32d2d">Zona de peligro</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Borra la configuración y vuelve a la pantalla de inicio.
+        </p>
+        <button class="btn" onclick="resetConfig()" style="border-color:#e24b4a;color:#a32d2d">
+          Borrar configuración
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>
