@@ -1,26 +1,747 @@
 /* ============================================================
-   NUEVOS ESTILOS PARA EL TUTORIAL DE CONFIGURACIÓN (onboarding)
-   Agregar al final de style.css, antes del cierre del archivo.
-
-   Secciones añadidas:
-     - Indicador de progreso (1 → 2 → 3)
-     - Inputs del setup con validación visual
-     - Callout informativo (fondo tenue con ícono)
-     - Botón secundario (atrás)
-     - Enlace dinámico a la hoja
-     - Texto de ayuda inline (.step-sub)
-     - Ejemplo de URL resaltado
+   RESET
    ============================================================ */
-
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 /* ============================================================
-   INDICADOR DE PROGRESO DEL SETUP (numeritos 1 - 2 - 3)
+   TEMA (colores) — variables CSS para modo claro / oscuro.
+   Todos los componentes usan var(--xxx) en vez de colores fijos,
+   así que agregar un tema nuevo solo requiere definir estas vars.
+   ============================================================ */
+:root {
+  --bg: #f5f5f3;
+  --bg2: #ebebea;
+  --card: #fff;
+  --border: #e5e5e5;
+  --text: #1a1a1a;
+  --text2: #666;
+  --text3: #888;
+  --text4: #aaa;
+  --input-bg: #fff;
+  --input-border: #ddd;
+  --btn-bg: #fff;
+  --btn-hover: #f0f0f0;
+}
+
+/* Modo oscuro: se activa agregando la clase "dark" al <body> (ver toggleDark()) */
+.dark {
+  --bg: #1a1a1a;
+  --bg2: #2a2a2a;
+  --card: #222;
+  --border: #333;
+  --text: #f0f0f0;
+  --text2: #aaa;
+  --text3: #888;
+  --text4: #555;
+  --input-bg: #2a2a2a;
+  --input-border: #444;
+  --btn-bg: #2a2a2a;
+  --btn-hover: #333;
+}
+
+/* ============================================================
+   BASE / TIPOGRAFÍA
+   ============================================================ */
+body {
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 1.25rem;
+  font-size: 14px;
+  transition: background .3s, color .3s;
+}
+h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+.sub {
+  font-size: 13px;
+  color: var(--text3);
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.25rem;
+}
+
+/* ============================================================
+   BARRA DE ESTADO DE SINCRONIZACIÓN (punto de color + mensaje)
+   Estados: ok (verde), err (rojo), pnd/pendiente (naranja, parpadea)
+   ============================================================ */
+.sbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg2);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  font-size: 12px;
+  color: var(--text2);
+}
+.sdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #1d9e75;
+}
+.sdot.err { background: #e24b4a; }
+.sdot.pnd {
+  background: #ef9f27;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+/* ============================================================
+   NAVEGADOR DE MES (flechas ← mes actual →)
+   ============================================================ */
+.mnav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+.mnav button {
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  padding: 5px 14px;
+  background: var(--btn-bg);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+.mnav button:hover { background: var(--btn-hover); }
+.mlbl {
+  font-size: 15px;
+  font-weight: 500;
+  min-width: 150px;
+  text-align: center;
+}
+
+/* ============================================================
+   TARJETAS DE MÉTRICAS (resumen: total, gastos, pagos TC, top categoría)
+   ============================================================ */
+.mets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 600px) {
+  .mets { grid-template-columns: 1fr 1fr; }
+  .g2 { grid-template-columns: 1fr !important; }
+}
+.met {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 12px;
+}
+.ml {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 4px;
+}
+.mv { font-size: 18px; font-weight: 500; }
+.ms {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+/* ============================================================
+   TARJETA GENÉRICA (contenedor blanco usado en toda la app)
+   ============================================================ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.ct {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+/* Grilla de 2 columnas (se colapsa a 1 en móvil) */
+.g2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ============================================================
+   FORMULARIOS (labels + inputs genéricos)
+   ============================================================ */
+.fg { margin-bottom: 10px; }
+.fg label {
+  display: block;
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 3px;
+}
+.fg input, .fg select {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+/* Caja de campos extra al elegir "Tarjeta de Crédito" */
+.tcbox {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px;
+  margin-bottom: 10px;
+}
+.tch {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+.btn {
+  width: 100%;
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--btn-bg);
+  cursor: pointer;
+  margin-top: 3px;
+  color: var(--text);
+}
+.btn:hover { background: var(--btn-hover); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.btn-ingreso {
+  border-color: #1d9e75;
+  background: #eaf3de;
+  color: #1d6e4f;
+}
+.btn.btn-ingreso:hover { background: #ddebd0; }
+
+/* Toggle Gasto / Ingreso en el formulario de "Agregar movimiento" */
+.type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.type-toggle-btn {
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--btn-bg);
+  color: var(--text2);
+  cursor: pointer;
+}
+.type-toggle-btn.active {
+  border-color: #a32d2d;
+  background: #fbeaea;
+  color: #a32d2d;
+}
+#modeBtnIngreso.active {
+  border-color: #1d9e75;
+  background: #eaf3de;
+  color: #1d6e4f;
+}
+
+/* ============================================================
+   LEYENDA DEL GRÁFICO DE TORTA
+   ============================================================ */
+.lgd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.lgd span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text2);
+}
+.lgd i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.cw { position: relative; height: 210px; }
+
+/* ============================================================
+   LISTA DE TRANSACCIONES DEL MES
+   ============================================================ */
+.elist {
+  max-height: 380px;
+  overflow-y: auto;
+}
+.ei {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ei:last-child { border-bottom: none; }
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.einfo { flex: 1; min-width: 0; }
+.edesc {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ecat { font-size: 11px; color: var(--text3); }
+.eamt { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.ebtns { display: flex; gap: 2px; }
+.del, .edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 3px;
+  line-height: 1;
+}
+.del { color: var(--text4); }
+.del:hover { color: #e24b4a; }
+.edit-btn { color: var(--text4); }
+.edit-btn:hover { color: #534ab7; }
+
+/* Panel de edición inline de un gasto */
+.edit-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 4px 0 6px;
+  display: none;
+}
+.edit-panel.open { display: block; }
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.edit-grid .fg { margin-bottom: 0; }
+.edit-actions { display: flex; gap: 8px; }
+.edit-actions button {
+  flex: 1;
+  padding: 7px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  border: 1px solid var(--input-border);
+}
+.btn-save-edit {
+  background: #534ab7;
+  color: #fff;
+  border-color: #534ab7 !important;
+}
+.btn-save-edit:hover { background: #3d3a8c; }
+.btn-cancel-edit { background: var(--btn-bg); color: var(--text); }
+.btn-cancel-edit:hover { background: var(--btn-hover); }
+
+/* Input de monto con "$" superpuesto */
+.amt-wrap { position: relative; }
+.amt-prefix {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--text2);
+  pointer-events: none;
+}
+.amt-wrap input { padding-left: 22px; }
+
+.empty {
+  text-align: center;
+  padding: 2rem;
+  font-size: 13px;
+  color: var(--text4);
+}
+
+/* ============================================================
+   BARRA DE DISTRIBUCIÓN POR CATEGORÍA
+   ============================================================ */
+.brow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 5px;
+  color: var(--text2);
+}
+.bbg {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+  margin-bottom: 9px;
+}
+.bfill { height: 100%; border-radius: 3px; }
+
+/* ============================================================
+   BARRA DE PROGRESO DEL PRESUPUESTO MENSUAL
+   ============================================================ */
+.pbg {
+  height: 9px;
+  border-radius: 5px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 8px 0 5px;
+}
+.pfill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width .4s, background .4s;
+}
+.pmeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+/* ============================================================
+   ALERTAS DE PRESUPUESTO
+   ============================================================ */
+.alert {
+  border-radius: 8px;
+  padding: 9px 13px;
+  font-size: 13px;
+  margin-bottom: 1.25rem;
+  display: flex;
+  gap: 7px;
+}
+.aw { background: #faeeda; color: #854f0b; border: 1px solid #ef9f27; }
+.ad { background: #fcebeb; color: #a32d2d; border: 1px solid #e24b4a; }
+.ao { background: #eaf3de; color: #3b6d11; border: 1px solid #639922; }
+
+/* ============================================================
+   HISTORIAL DE CUOTAS TC
+   ============================================================ */
+.tci {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tci:last-child { border-bottom: none; }
+.tcih {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.tcin { font-size: 13px; font-weight: 500; }
+.badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #e6f1fb;
+  color: #185fa5;
+}
+.badge.done { background: #eaf3de; color: #3b6d11; }
+.tcpb {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 4px 0;
+}
+.tcpf { height: 100%; border-radius: 2px; background: #7f77dd; }
+.tcmeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* ============================================================
+   FILA INPUT + BOTÓN EN LÍNEA (ej: presupuesto + Guardar)
+   ============================================================ */
+.birow {
+  display: flex;
+  gap: 7px;
+  align-items: flex-end;
+  margin-bottom: 9px;
+}
+.birow input {
+  flex: 1;
+  padding: 7px 9px;
+  font-size: 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--text);
+}
+.birow button {
+  padding: 7px 14px;
+  font-size: 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 7px;
+  background: var(--btn-bg);
+  cursor: pointer;
+  color: var(--text);
+}
+.birow button:hover { background: var(--btn-hover); }
+
+/* Botón "Enviar reporte por Gmail" */
+.btnrep {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #7f77dd;
+  border-radius: 8px;
+  background: var(--btn-bg);
+  color: #534ab7;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.btnrep:hover { background: #eeedfe; }
+.btnrep:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Texto de resultado de acción async */
+.rst {
+  margin-top: 7px;
+  font-size: 12px;
+  text-align: center;
+  min-height: 16px;
+}
+.rst.ok { color: #3b6d11; }
+.rst.err { color: #a32d2d; }
+.rst.snd { color: #534ab7; }
+
+/* ============================================================
+   TARJETA DE CRÉDITO (mis tarjetas / compromisos por ciclo)
+   ============================================================ */
+.tc-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.tc-card-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.tc-card-name { font-size: 14px; font-weight: 500; }
+.tc-card-info { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.tc-card-total { font-size: 13px; font-weight: 500; color: #534ab7; margin-bottom: 4px; }
+.tc-card-pago {
+  font-size: 11px;
+  color: #3b6d11;
+  background: #eaf3de;
+  padding: 2px 8px;
+  border-radius: 5px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.tc-card-pago.urgent { background: #fcebeb; color: #a32d2d; }
+.tc-compra-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.tc-compra-item:last-child { border-bottom: none; }
+.add-tc-card {
+  border: 1px dashed var(--input-border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text3);
+}
+.add-tc-card:hover { background: var(--btn-hover); }
+
+/* ============================================================
+   PESTAÑAS (Resumen / Gastos / Tarjetas TC / Config)
+   ============================================================ */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: var(--text3);
+  margin-bottom: -1px;
+}
+.tab.active {
+  color: #534ab7;
+  border-bottom-color: #534ab7;
+  font-weight: 500;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Formulario de registro de pago de tarjeta */
+.pago-form {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+/* Botón modo oscuro */
+.dark-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 2px 6px;
+  line-height: 1;
+}
+
+/* Botón ajustes */
+.settings-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  line-height: 1;
+  color: var(--text3);
+}
+.settings-btn:hover { color: var(--text); }
+
+/* ============================================================
+   PANTALLA DE CONFIGURACIÓN INICIAL (onboarding)
+   Se muestra a pantalla completa mientras no exista una URL de
+   Apps Script guardada en localStorage (ver checkSetup()).
+   ============================================================ */
+#setupScreen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 100;
+  overflow-y: auto;
+  padding: 2rem 1.25rem;
+  display: none;
+}
+#setupScreen.visible { display: block; }
+.setup-wrap { max-width: 560px; margin: 0 auto; }
+.setup-logo { font-size: 36px; margin-bottom: 1rem; }
+.setup-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+.setup-sub { font-size: 14px; color: var(--text2); margin-bottom: 2rem; }
+
+.step {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #534ab7;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.step-title {
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.step-body {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.7;
+}
+.step-body code {
+  background: var(--bg2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+.step-body ol, .step-body ul { padding-left: 1.2rem; margin-top: 6px; }
+.step-body li { margin-bottom: 4px; }
+
+.btn-primary {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  background: #534ab7;
+  color: #fff;
+  cursor: pointer;
+}
+.btn-primary:hover { background: #3d3a8c; }
+
+.setup-err {
+  font-size: 12px;
+  color: #a32d2d;
+  margin-top: 5px;
+  display: none;
+}
+.setup-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text4);
+  margin-top: 1.5rem;
+}
+
+/* ============================================================
+   ONBOARDING — indicador de progreso (numeritos 1 → 2 → 3)
    ============================================================ */
 .setup-progress {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
   margin-bottom: 1.75rem;
 }
 
@@ -40,15 +761,11 @@
   flex-shrink: 0;
   transition: background .3s, color .3s, border-color .3s;
 }
-
-/* Estado activo: paso actual */
 .setup-step-indicator.active {
   background: #534ab7;
   color: #fff;
   border-color: #534ab7;
 }
-
-/* Estado completado: pasos anteriores al actual */
 .setup-step-indicator.done {
   background: #1d9e75;
   color: #fff;
@@ -63,19 +780,12 @@
   max-width: 60px;
   transition: background .3s;
 }
-
-/* Línea activa (entre un paso completado y el siguiente) */
-.setup-progress-line.done {
-  background: #1d9e75;
-}
-
+.setup-progress-line.done { background: #1d9e75; }
 
 /* ============================================================
-   INPUTS DEL SETUP (con validación visual ok/error)
+   ONBOARDING — inputs con validación visual
    ============================================================ */
-.setup-input-group {
-  margin-top: 12px;
-}
+.setup-input-group { margin-top: 12px; }
 
 .setup-input {
   width: 100%;
@@ -88,31 +798,17 @@
   font-family: monospace;
   transition: border-color .2s;
 }
-
-/* Estado de error: borde rojo */
 .setup-input.input-err { border-color: #e24b4a; }
+.setup-input.input-ok  { border-color: #1d9e75; }
 
-/* Estado válido: borde verde */
-.setup-input.input-ok { border-color: #1d9e75; }
-
-/* Texto de error bajo el input (oculto por defecto) */
-.setup-err {
-  font-size: 12px;
-  color: #a32d2d;
-  margin-top: 5px;
-  display: none;
-}
-
-/* Texto de ayuda/confirmación bajo el input (oculto por defecto) */
 .setup-hint {
   font-size: 12px;
   color: #3b6d11;
   margin-top: 5px;
 }
 
-
 /* ============================================================
-   CALLOUT INFORMATIVO (bloque de aviso con fondo tenue)
+   ONBOARDING — callout informativo
    ============================================================ */
 .setup-callout {
   background: var(--bg2);
@@ -125,9 +821,8 @@
   margin-bottom: 14px;
 }
 
-
 /* ============================================================
-   NAVEGACIÓN ENTRE PASOS (botones Atrás / Siguiente)
+   ONBOARDING — navegación entre pasos (Atrás / Siguiente)
    ============================================================ */
 .setup-nav {
   display: flex;
@@ -138,10 +833,6 @@
   border-top: 1px solid var(--border);
 }
 
-/* Botón principal (Siguiente / Comenzar) — ya existía como .btn-primary */
-/* Se mantiene igual, solo se reutiliza aquí */
-
-/* Botón secundario (Atrás): más discreto */
 .btn-secondary {
   padding: 10px 20px;
   font-size: 13px;
@@ -154,10 +845,8 @@
 }
 .btn-secondary:hover { background: var(--btn-hover); }
 
-
 /* ============================================================
-   ENLACE DINÁMICO A LA GOOGLE SHEET DEL USUARIO
-   Se muestra en el paso 2 una vez que el ID fue ingresado.
+   ONBOARDING — enlace dinámico a la Google Sheet del usuario
    ============================================================ */
 .btn-sheet-link {
   display: inline-flex;
@@ -176,10 +865,11 @@
 }
 .btn-sheet-link:hover { background: #dddcfc; }
 
-
 /* ============================================================
-   TEXTO SECUNDARIO DENTRO DE UN PASO (aclaración en gris)
+   ONBOARDING — texto secundario y ejemplo de URL
    ============================================================ */
+
+/* Aclaración en gris bajo un paso */
 .step-sub {
   display: block;
   font-size: 11px;
@@ -188,10 +878,7 @@
   line-height: 1.5;
 }
 
-
-/* ============================================================
-   EJEMPLO DE URL RESALTADO (la parte del ID en negrita/color)
-   ============================================================ */
+/* Bloque de ejemplo de URL con fondo tenue */
 .setup-url-example {
   background: var(--bg2);
   border-radius: 6px;
@@ -203,8 +890,95 @@
   word-break: break-all;
 }
 
-/* Parte resaltada dentro del ejemplo de URL o preview de código */
+/* Texto resaltado (ID en el ejemplo de URL o preview de código) */
 .highlight {
   color: #534ab7;
   font-weight: 700;
+}
+
+/* ============================================================
+   BUSCADOR / FILTRO DE TRANSACCIONES
+   ============================================================ */
+.tx-filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.tx-filters input, .tx-filters select {
+  padding: 7px 9px;
+  font-size: 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--bg2);
+  color: var(--text);
+}
+@media (max-width: 640px) {
+  .tx-filters { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   PRESUPUESTO POR CATEGORÍA
+   ============================================================ */
+.bc-row { margin-bottom: 12px; }
+.bc-row:last-child { margin-bottom: 0; }
+.bc-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.bc-name { font-size: 13px; color: var(--text2); flex: 1; }
+.bc-inputwrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg2);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.bc-input {
+  width: 80px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text);
+  padding: 3px 2px;
+}
+.bc-input:focus { outline: none; }
+.bc-save {
+  border: none;
+  background: none;
+  color: #1d9e75;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+}
+
+/* ============================================================
+   IMPRESIÓN / EXPORTAR PDF
+   printArea está oculto en pantalla; al llamar window.print() solo
+   se muestra ese contenido (ver exportPDF() en app.js).
+   ============================================================ */
+#printArea { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    color: #000;
+  }
+  #printArea table { margin-top: 12px; }
+  #printArea th, #printArea td {
+    border: 1px solid #ccc;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
 }

@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#534ab7">
+  <meta name="description" content="Dashboard personal de gastos e ingresos, sincronizado con Google Sheets.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -34,45 +39,41 @@
         <div class="setup-step-indicator" id="ind-3">3</div>
       </div>
 
-      <!-- ── PASO 1: Google Sheet ── -->
+      <!-- ── PASO 1: Copiar la plantilla ── -->
       <div class="step" id="step-1">
         <div class="step-title">
-          <span class="step-num">1</span> Crea tu Google Sheet
+          <span class="step-num">1</span> Copia tu plantilla de Google Sheet
         </div>
         <div class="step-body">
+          <div class="setup-callout">
+            💡 <strong>No partes desde cero.</strong><br>
+            Esta plantilla ya trae el backend (Apps Script) incorporado —
+            no vas a necesitar escribir ni pegar código en ningún momento.
+          </div>
           <ol>
             <li>
-              Ve a <a href="https://sheets.new" target="_blank" rel="noopener">
-                <strong>sheets.new</strong>
-              </a> para crear una hoja de cálculo nueva en tu cuenta de Google.
+              Haz clic en el botón de abajo para crear tu propia copia de la plantilla
+              en tu cuenta de Google:
             </li>
-            <li>
-              Puedes nombrarla como quieras, por ejemplo: <code>Mis Gastos</code>.
-            </li>
-            <li>
-              Copia el <strong>ID de la hoja</strong> desde la barra de direcciones del navegador.
-              Es la parte que aparece entre <code>/d/</code> y <code>/edit</code>:
-              <div class="setup-url-example">
-                https://docs.google.com/spreadsheets/d/<strong class="highlight">[ESTE ES EL ID]</strong>/edit
-              </div>
-            </li>
-            <li>Pega el ID aquí abajo:</li>
           </ol>
 
-          <div class="setup-input-group">
-            <input
-              type="text"
-              id="setupSheetId"
-              class="setup-input"
-              placeholder="Ej: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
-              oninput="onSheetIdInput()"
-            >
-            <div class="setup-err" id="errSheetId">
-              Por favor ingresa un ID válido de Google Sheet.
-            </div>
-            <div class="setup-hint" id="hintSheetId" style="display:none">
-              ✓ Las 5 hojas necesarias se crearán automáticamente más adelante.
-            </div>
+          <a href="https://docs.google.com/spreadsheets/d/PLANTILLA_SHEET_ID/copy" target="_blank" rel="noopener" class="btn-sheet-link" style="display:inline-block;margin:6px 0 12px">
+            📄 Hacer una copia de la plantilla
+          </a>
+
+          <ol start="2">
+            <li>
+              Google te pedirá guardar la copia en tu Drive. Ponle el nombre que quieras,
+              por ejemplo: <code>Mis Gastos</code>.
+            </li>
+            <li>
+              Deja esa pestaña abierta — la vas a necesitar en el siguiente paso.
+            </li>
+          </ol>
+
+          <div class="setup-hint" style="display:block">
+            ✓ Tus datos quedan solo en tu propia copia, en tu cuenta de Google.
+            Nadie más tiene acceso.
           </div>
         </div>
 
@@ -82,60 +83,45 @@
         </div>
       </div>
 
+
       <!-- ── PASO 2: Apps Script ── -->
       <div class="step" id="step-2" style="display:none">
         <div class="step-title">
-          <span class="step-num">2</span> Configura Google Apps Script
+          <span class="step-num">2</span> Activa el backend
         </div>
         <div class="step-body">
 
           <div class="setup-callout">
-            💡 <strong>¿Dónde crear el proyecto?</strong><br>
-            El Apps Script se crea directamente <strong>desde tu Google Sheet</strong>,
-            no en Google Cloud Console. Sigue estos pasos:
+            💡 <strong>No necesitas escribir ni editar código.</strong><br>
+            El script ya viene incluido en tu copia — solo hay que ejecutarlo y publicarlo.
           </div>
 
           <ol>
             <li>
-              Abre tu Google Sheet y ve al menú
+              En tu copia de la hoja (del paso anterior), ve al menú
               <strong>Extensiones → Apps Script</strong>.
               <br>
               <span class="step-sub">
-                Se abrirá el editor de Apps Script en una nueva pestaña,
-                ya vinculado a tu hoja.
+                Verás que el código ya está ahí — no hay que pegar ni editar nada,
+                el script detecta automáticamente en qué hoja está corriendo.
               </span>
             </li>
             <li>
-              En el editor, borra todo el código que aparece por defecto
-              y pega el código del archivo <code>apps_script.gs</code> disponible en el
-              <a href="https://github.com/GBarrera817/dashboard_gastos" target="_blank" rel="noopener">
-                repositorio del proyecto
-              </a>.
-            </li>
-            <li>
-              Busca la línea que dice <code>const SHEET_ID = '';</code> y reemplaza
-              el valor con el ID de tu hoja:<br>
-              <code>const SHEET_ID = '<span id="sheetIdPreview" class="highlight">TU_ID_AQUÍ</span>';</code>
-            </li>
-            <li>
-              Busca la línea <code>const EMAIL_DESTINO = '';</code> y reemplaza el valor
-              con tu correo Gmail para recibir los reportes mensuales.
-            </li>
-            <li>Guarda el proyecto con <kbd>Ctrl</kbd> + <kbd>S</kbd>.</li>
-            <li>
               <strong>Ejecuta la función <code>setup</code></strong> para crear
-              automáticamente todas las hojas necesarias en tu Sheet:
+              automáticamente todas las hojas necesarias:
               <ul>
                 <li>En el selector de funciones (arriba del botón ▶️), elige <code>setup</code>.</li>
                 <li>Haz clic en <strong>▶️ Ejecutar</strong>.</li>
                 <li>
-                  Google te pedirá autorizar permisos la primera vez — acepta todos
-                  para que el script pueda leer/escribir en tu Sheet y enviar correos.
+                  Google va a mostrar un aviso de "esta app no está verificada" —
+                  es normal, es tu propio script personal. Haz clic en
+                  <strong>Avanzado</strong> → <strong>Ir a [nombre del proyecto] (no seguro)</strong>
+                  → <strong>Permitir</strong>.
                 </li>
               </ul>
             </li>
             <li>
-              Una vez ejecutado el setup, despliega el script como <strong>Web App</strong>:
+              Despliega el script como <strong>Web App</strong>:
               <ul>
                 <li>Ve a <strong>Implementar → Nueva implementación</strong>.</li>
                 <li>En "Tipo de implementación" elige <strong>Aplicación web</strong>.</li>
@@ -145,16 +131,14 @@
                     <li><strong>Quién tiene acceso:</strong> Cualquier persona</li>
                   </ul>
                 </li>
-                <li>Haz clic en <strong>Implementar</strong> y copia la URL generada.</li>
+                <li>Haz clic en <strong>Implementar</strong> y copia la URL generada (termina en <code>/exec</code>).</li>
               </ul>
             </li>
           </ol>
 
-          <!-- Enlace dinámico que se genera al tener el Sheet ID del paso 1 -->
-          <div id="sheetLinkWrap" style="display:none">
-            <a id="sheetLink" href="#" target="_blank" rel="noopener" class="btn-sheet-link">
-              📄 Abrir mi Google Sheet
-            </a>
+          <div class="setup-callout" style="margin-top:12px">
+            📧 Los reportes mensuales se enviarán automáticamente al correo de Google
+            con el que hiciste la copia — no hace falta configurarlo.
           </div>
 
         </div>
@@ -241,6 +225,7 @@
       <div class="tab active" onclick="showTab('resumen')">Resumen</div>
       <div class="tab" onclick="showTab('gastos')">Gastos</div>
       <div class="tab" onclick="showTab('tc')">Tarjetas TC</div>
+      <div class="tab" onclick="showTab('metas')">🎯 Metas</div>
       <div class="tab" onclick="showTab('config')">⚙️ Config</div>
     </div>
 
@@ -285,6 +270,16 @@
           <div class="ms" id="mCount">0 transacciones</div>
         </div>
         <div class="met">
+          <div class="ml">Ingresos</div>
+          <div class="mv" id="mIngresos" style="color:#1d9e75">$0</div>
+          <div class="ms">este mes</div>
+        </div>
+        <div class="met">
+          <div class="ml">Balance</div>
+          <div class="mv" id="mBalance">$0</div>
+          <div class="ms">ingresos − gastos</div>
+        </div>
+        <div class="met">
           <div class="ml">Gastos directos</div>
           <div class="mv" id="mGastos">$0</div>
           <div class="ms">sin TC</div>
@@ -311,13 +306,38 @@
           <div id="bars"></div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="ct">Presupuesto por categoría</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:10px">
+          Define un tope opcional por categoría. Deja el campo vacío para no limitarla.
+        </p>
+        <div id="budgetCatList"></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Tendencia histórica</div>
+        <div class="cw" style="height:220px"><canvas id="trendChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Resumen anual</div>
+        <div id="anualResumen"></div>
+      </div>
     </div>
 
     <!-- GASTOS -->
     <div class="tab-content" id="tab-gastos">
       <div class="g2">
         <div class="card" style="margin-bottom:0">
-          <div class="ct">Agregar gasto</div>
+          <div class="ct">Agregar movimiento</div>
+
+          <!-- Toggle Gasto / Ingreso: cambia las categorías y el comportamiento del formulario -->
+          <div class="type-toggle">
+            <button type="button" id="modeBtnGasto" class="type-toggle-btn active" onclick="setInMode('gasto')">− Gasto</button>
+            <button type="button" id="modeBtnIngreso" class="type-toggle-btn" onclick="setInMode('ingreso')">+ Ingreso</button>
+          </div>
+
           <div class="fg">
             <label>Categoría</label>
             <select id="inCat" onchange="toggleTC()">
@@ -344,7 +364,7 @@
               <input type="text" id="inAmt" placeholder="0" oninput="fmtAmt(this)" inputmode="numeric">
             </div>
           </div>
-          <!-- Campos que solo aplican cuando la categoría es "Tarjeta de Crédito" -->
+          <!-- Campos que solo aplican cuando la categoría es "Tarjeta de Crédito" (modo Gasto) -->
           <div class="tcbox" id="tcBox" style="display:none">
             <div class="fg">
               <label>Tarjeta</label>
@@ -369,10 +389,51 @@
         </div>
         <div class="card" style="margin-bottom:0">
           <div class="ct">Transacciones del mes</div>
+          <div class="tx-filters">
+            <input type="text" id="searchTx" placeholder="🔍 Buscar por texto..." oninput="onSearchInput(this.value)">
+            <select id="filterCatSelect" onchange="onFilterCatChange(this.value)"></select>
+          </div>
           <div class="elist" id="expList">
             <div class="empty">No hay gastos este mes.</div>
           </div>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Gastos e ingresos recurrentes</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:10px">
+          Se generan automáticamente cada mes en el día indicado (arriendo, suscripciones, sueldo, etc.).
+        </p>
+        <div class="fg">
+          <label>Tipo</label>
+          <select id="recTipo" onchange="toggleRecurrenteFields()">
+            <option value="gasto">Gasto</option>
+            <option value="ingreso">Ingreso</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Categoría</label>
+          <select id="recCat"></select>
+        </div>
+        <div class="fg">
+          <label>Descripción</label>
+          <input type="text" id="recDesc" placeholder="Ej: Arriendo departamento">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="fg">
+            <label>Monto (CLP)</label>
+            <div class="amt-wrap">
+              <span class="amt-prefix">$</span>
+              <input type="text" id="recMonto" placeholder="0" oninput="fmtGenAmt(this)" inputmode="numeric">
+            </div>
+          </div>
+          <div class="fg">
+            <label>Día del mes</label>
+            <input type="number" id="recDia" min="1" max="28" placeholder="Ej: 5">
+          </div>
+        </div>
+        <button class="btn" onclick="addRecurrente()">+ Agregar recurrente</button>
+        <div id="recurrentesList" style="margin-top:12px"></div>
       </div>
     </div>
 
@@ -450,6 +511,35 @@
       </div>
     </div>
 
+    <!-- METAS -->
+    <div class="tab-content" id="tab-metas">
+      <div class="card">
+        <div class="ct">Nueva meta de ahorro</div>
+        <div class="fg">
+          <label>Nombre</label>
+          <input type="text" id="metaNombre" placeholder="Ej: Vacaciones, fondo de emergencia">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="fg">
+            <label>Monto objetivo (CLP)</label>
+            <div class="amt-wrap">
+              <span class="amt-prefix">$</span>
+              <input type="text" id="metaMonto" placeholder="0" oninput="fmtGenAmt(this)" inputmode="numeric">
+            </div>
+          </div>
+          <div class="fg">
+            <label>Fecha objetivo (opcional)</label>
+            <input type="date" id="metaFecha">
+          </div>
+        </div>
+        <button class="btn" onclick="addMeta()">+ Crear meta</button>
+      </div>
+      <div class="card">
+        <div class="ct">Mis metas</div>
+        <div id="metasList"></div>
+      </div>
+    </div>
+
     <!-- CONFIG -->
     <div class="tab-content" id="tab-config">
       <div class="card">
@@ -484,6 +574,16 @@
         <div class="rst" id="repSt"></div>
       </div>
       <div class="card">
+        <div class="ct">Exportar datos</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:12px">
+          Descarga tus movimientos como Excel, o el resumen del mes visible como PDF.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn" onclick="exportExcel()">📊 Descargar Excel</button>
+          <button class="btn" onclick="exportPDF()">🖨️ Guardar como PDF</button>
+        </div>
+      </div>
+      <div class="card">
         <div class="ct" style="color:#a32d2d">Zona de peligro</div>
         <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
           Borra la configuración y vuelve a la pantalla de inicio.
@@ -495,7 +595,11 @@
     </div>
   </div>
 
+  <!-- Área usada únicamente por exportPDF(): oculta en pantalla, visible solo al imprimir (ver style.css @media print) -->
+  <div id="printArea"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
