@@ -288,6 +288,7 @@ h2 {
   flex-shrink: 0;
 }
 .cw { position: relative; height: 210px; }
+.cw-trend { height: 220px; }
 
 /* ============================================================
    LISTA DE TRANSACCIONES DEL MES
@@ -981,4 +982,127 @@ h2 {
     padding: 6px 8px;
     font-size: 13px;
   }
+}
+
+/* ============================================================
+   PANEL DE DIAGNÓSTICO
+   ============================================================ */
+.debug-log {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--bg2);
+  font-family: monospace;
+  font-size: 11px;
+}
+.dbg-row {
+  display: grid;
+  grid-template-columns: 70px 110px 1fr;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--input-border);
+}
+.dbg-row:last-child { border-bottom: none; }
+.dbg-time { color: var(--text3); }
+.dbg-tipo { color: var(--text2); }
+.dbg-ok .dbg-status { color: #1d9e75; }
+.dbg-err .dbg-status { color: #e24b4a; }
+
+/* ============================================================
+   GRID2 — reemplaza estilos inline de 2 columnas repetidos
+   (recurrentes, metas, tarjeta nueva, presupuesto), para poder
+   colapsarlos a 1 columna en móvil desde un solo lugar.
+   ============================================================ */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ============================================================
+   OPTIMIZACIÓN MÓVIL
+   Todo lo que aplica solo en pantallas angostas (celulares) vive
+   agrupado acá para que sea fácil de mantener en un solo lugar.
+   ============================================================ */
+@media (max-width: 640px) {
+  body { padding: .75rem; font-size: 13px; }
+
+  /* Header: título + botones más compactos, sin overlap */
+  h2 { font-size: 16px; }
+  .settings-btn, .dark-btn { font-size: 16px; padding: 4px; }
+
+  /* Barra de sincronización: botón "Actualizar" no se corta */
+  .sbar { flex-wrap: wrap; padding: 7px 10px; }
+  .sbar button { margin-left: 0 !important; }
+
+  /* Navegador de mes: menos ancho mínimo para la etiqueta */
+  .mlbl { min-width: 110px; font-size: 14px; }
+  .mnav button { padding: 5px 12px; }
+
+  /* Tabs: scroll horizontal en vez de apretarse o cortarse */
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Tarjetas: menos padding para aprovechar el ancho */
+  .card { padding: .85rem .9rem; margin-bottom: 1rem; }
+  .ct { font-size: 13px; }
+
+  /* Métricas: 2 columnas fijas, texto que no se corta */
+  .mets { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .met { padding: 10px; }
+  .mv { font-size: 16px; }
+  .ml, .ms { font-size: 10px; }
+
+  /* Grillas de 2 columnas que colapsan a 1 en formularios */
+  .grid2 { grid-template-columns: 1fr; }
+  .edit-grid { grid-template-columns: 1fr; }
+  .type-toggle { grid-template-columns: 1fr 1fr; } /* este sí se mantiene en 2, cabe bien */
+
+  /* Presupuesto por categoría: nombre arriba, input abajo (no se aprietan) */
+  .bc-hdr { flex-direction: column; align-items: stretch; gap: 6px; }
+  .bc-inputwrap { justify-content: space-between; }
+  .bc-input { width: 100%; }
+
+  /* Panel de diagnóstico: apilado en vez de 3 columnas apretadas */
+  .dbg-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .dbg-time { font-size: 10px; }
+
+  /* Botones de acción (editar/duplicar/eliminar) con más área táctil */
+  .del, .edit-btn {
+    min-width: 30px;
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Tarjetas de tarjeta/TC/meta: texto no se desborda */
+  .tc-card-hdr { flex-wrap: wrap; gap: 6px; }
+
+  /* Buscador/filtro de transacciones ya colapsa a 1 columna (regla existente),
+     pero achicamos un poco más el padding para que quepa cómodo */
+  .tx-filters input, .tx-filters select { padding: 8px; font-size: 13px; }
+
+  /* Gráficos: un poco menos de alto para que quepan sin tanto scroll */
+  .cw { height: 180px; }
+  .cw-trend { height: 190px; }
+
+  /* Setup / onboarding: menos padding lateral en el paso a paso */
+  .setup-wrap { padding: 0; }
+  .step-body { font-size: 13px; }
 }

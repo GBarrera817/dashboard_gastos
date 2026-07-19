@@ -317,7 +317,7 @@
 
       <div class="card">
         <div class="ct">Tendencia histórica</div>
-        <div class="cw" style="height:220px"><canvas id="trendChart"></canvas></div>
+        <div class="cw cw-trend"><canvas id="trendChart"></canvas></div>
       </div>
 
       <div class="card">
@@ -419,7 +419,7 @@
           <label>Descripción</label>
           <input type="text" id="recDesc" placeholder="Ej: Arriendo departamento">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="grid2">
           <div class="fg">
             <label>Monto (CLP)</label>
             <div class="amt-wrap">
@@ -446,7 +446,7 @@
             <label>Tarjeta</label>
             <select id="pagoTarjeta"></select>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="grid2">
             <div class="fg">
               <label>Monto pagado (CLP)</label>
               <input type="number" id="pagoMonto" placeholder="Ej: 85000" min="0" step="1000">
@@ -478,7 +478,7 @@
             <label>Nombre del banco</label>
             <input type="text" id="newTCName" placeholder="Ej: Banco Estado">
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="grid2">
             <div class="fg">
               <label>Día de cierre</label>
               <input type="number" id="newTCCierre" min="1" max="31">
@@ -519,7 +519,7 @@
           <label>Nombre</label>
           <input type="text" id="metaNombre" placeholder="Ej: Vacaciones, fondo de emergencia">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="grid2">
           <div class="fg">
             <label>Monto objetivo (CLP)</label>
             <div class="amt-wrap">
@@ -596,7 +596,7 @@
         <p style="font-size:12px;color:var(--text3);margin-bottom:12px">
           Descarga tus movimientos como Excel, o el resumen del mes visible como PDF.
         </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="grid2">
           <button class="btn" onclick="exportExcel()">📊 Descargar Excel</button>
           <button class="btn" onclick="exportPDF()">🖨️ Guardar como PDF</button>
         </div>
