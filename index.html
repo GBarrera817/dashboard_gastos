@@ -574,6 +574,24 @@
         <div class="rst" id="repSt"></div>
       </div>
       <div class="card">
+        <div class="ct">Diagnóstico</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:12px">
+          Si algo falla, revisa aquí antes que nada: te dice si el dashboard está
+          bien conectado a tu Google Sheet, y qué error exacto devuelve el
+          backend cuando algo no se guarda.
+        </p>
+        <button class="btn" onclick="testConnection()">🔌 Probar conexión</button>
+        <div class="rst" id="pingSt"></div>
+
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:12px">
+          <input type="checkbox" id="debugToggle" onchange="toggleDebugMode(this.checked)">
+          Activar modo diagnóstico (registra las últimas peticiones al backend)
+        </label>
+        <div id="debugLogWrap" style="display:none;margin-top:8px">
+          <div id="debugLog" class="debug-log"></div>
+        </div>
+      </div>
+      <div class="card">
         <div class="ct">Exportar datos</div>
         <p style="font-size:12px;color:var(--text3);margin-bottom:12px">
           Descarga tus movimientos como Excel, o el resumen del mes visible como PDF.
@@ -585,6 +603,13 @@
       </div>
       <div class="card">
         <div class="ct" style="color:#a32d2d">Zona de peligro</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Borra TODOS los gastos e ingresos guardados (de todos los meses). No afecta
+          tarjetas, compras en cuotas, recurrentes ni metas de ahorro. No se puede deshacer.
+        </p>
+        <button class="btn" onclick="deleteAllTransactions()" style="border-color:#e24b4a;color:#a32d2d;margin-bottom:14px">
+          🗑️ Eliminar TODOS los gastos e ingresos
+        </button>
         <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
           Borra la configuración y vuelve a la pantalla de inicio.
         </p>

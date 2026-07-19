@@ -63,6 +63,8 @@ let editingTipo = null;    // 'gasto' | 'ingreso' — a qué tipo pertenece edit
 let inMode = 'gasto';      // modo activo del formulario "Agregar" en la pestaña Gastos
 let searchQuery = '';      // texto de búsqueda en "Transacciones del mes"
 let filterCat = '';        // categoría seleccionada en el filtro de "Transacciones del mes"
+let debugMode = false;     // modo diagnóstico (pestaña Config)
+let debugLog = [];         // últimas peticiones al backend, para depurar errores
 
 // Arma la clave de mes usada como índice en aD/aI/aBu, ej: mk(2026, 7) -> "2026-07"
 const mk = (y, m) => y + '-' + String(m).padStart(2, '0');
@@ -243,6 +245,51 @@ function resetConfig() {
 // Acceso directo a la pestaña Config desde el botón ⚙️ del header.
 function openSettings() { showTab('config'); }
 
+// ============================================================
+// DIAGNÓSTICO — pestaña Config
+// ============================================================
+
+function toggleDebugMode(on) {
+  debugMode = on;
+  localStorage.setItem('debugMode', on ? '1' : '0');
+  document.getElementById('debugLogWrap').style.display = on ? 'block' : 'none';
+  if (on) renderDebugLog();
+}
+
+function renderDebugLog() {
+  const div = document.getElementById('debugLog');
+  if (!div) return;
+  if (!debugLog.length) { div.innerHTML = '<div class="empty">Todavía no hay peticiones registradas en esta sesión.</div>'; return; }
+  div.innerHTML = debugLog.map(e => `
+    <div class="dbg-row ${e.ok ? 'dbg-ok' : 'dbg-err'}">
+      <span class="dbg-time">${e.time}</span>
+      <span class="dbg-tipo">${e.tipo || '—'}</span>
+      <span class="dbg-status">${e.ok ? '✓ OK' : '✕ ' + (e.error || 'Error')}</span>
+    </div>`).join('');
+}
+
+// Revisa la conexión con el Apps Script: confirma a qué hoja está conectado y si
+// faltan hojas necesarias (típicamente porque no se corrió "setup", o se corrió
+// antes de una actualización que agregó hojas nuevas).
+async function testConnection() {
+  const st = document.getElementById('pingSt');
+  st.textContent = 'Probando conexión...';
+  st.className = 'rst snd';
+  const data = await asRead('ping');
+  if (!data) {
+    st.textContent = '✕ No se pudo conectar. Revisa la URL del Apps Script en "Configuración avanzada" más abajo.';
+    st.className = 'rst err';
+    return;
+  }
+  if (data.sheetsFaltantes && data.sheetsFaltantes.length) {
+    st.innerHTML = `⚠️ Conectado a "<strong>${data.spreadsheetName}</strong>", pero faltan hojas: <strong>${data.sheetsFaltantes.join(', ')}</strong>. Corre la función <code>setup</code> de nuevo en el editor de Apps Script.`;
+    st.className = 'rst err';
+  } else {
+    st.innerHTML = `✓ Todo bien. Conectado a "<strong>${data.spreadsheetName}</strong>" · reportes se envían a <strong>${data.emailDestino}</strong>.`;
+    st.className = 'rst ok';
+  }
+}
+
 // Inicializa el dashboard una vez que ya hay una URL de Apps Script configurada:
 // aplica el tema guardado, precarga fechas de hoy en los formularios, registra el
 // service worker (PWA) y carga los datos.
@@ -250,6 +297,10 @@ function initApp() {
   if (localStorage.getItem('darkMode') === '1') {
     document.body.classList.add('dark');
     document.getElementById('darkBtn').textContent = '☀️';
+  }
+  if (localStorage.getItem('debugMode') === '1') {
+    document.getElementById('debugToggle').checked = true;
+    toggleDebugMode(true);
   }
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('inDate').value = hoy;
@@ -346,13 +397,27 @@ function sync(s, msg) {
 // ============================================================
 
 async function asPost(payload) {
+  const entry = { time: new Date().toLocaleTimeString('es-CL'), tipo: payload.tipo, ok: null, error: null };
   try {
     const r = await fetch(AS, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-    return await r.json();
+    const j = await r.json();
+    entry.ok = j.ok === true;
+    entry.error = j.ok ? null : (j.error || 'Respuesta sin detalle de error');
+    entry.httpStatus = r.status;
+    logDebug(entry);
+    return j;
   } catch (e) {
+    entry.ok = false;
+    entry.error = String(e);
+    logDebug(entry);
     console.error('asPost', e);
     return { ok: false, error: String(e) };
   }
+}
+function logDebug(entry) {
+  debugLog.unshift(entry);
+  if (debugLog.length > 30) debugLog.pop();
+  if (debugMode) renderDebugLog();
 }
 // Para operaciones de escritura: solo interesa si tuvo éxito.
 async function asWrite(payload) { const j = await asPost(payload); return j.ok === true; }
@@ -1124,9 +1189,63 @@ function rTC() {
       <div class="tcpb"><div class="tcpf" style="width:${p}%"></div></div>
       <div class="tcmeta"><span>${fmt(tc.cm)}/mes · Total: ${fmt(tc.mt)}</span><span>${done ? 'Completado' : rest + ' cuota' + (rest !== 1 ? 's' : '') + ' restante' + (rest !== 1 ? 's' : '')}</span></div>
       ${cm > 0 ? `<div style="margin-top:3px;font-size:11px;color:#534ab7">Cuota este mes: ${fmt(cm)}</div>` : ''}
-      <div style="text-align:right;margin-top:3px"><button class="del" onclick="delTC(${i})">&#10005;</button></div>
+      <div style="text-align:right;margin-top:3px">
+        <button class="edit-btn" onclick="openEditTC('${tc.id}')" title="Editar">✏️</button>
+        <button class="del" onclick="delTC(${i})">&#10005;</button>
+      </div>
+      <div class="edit-panel" id="ep_tc_${tc.id}">
+        <div class="edit-grid">
+          <div class="fg"><label>Tarjeta</label><select class="ep-tc-tarjeta">${aTarjetas.map(t => `<option value="${t.id}"${t.id === tc.tarjetaId ? ' selected' : ''}>${t.nombre}</option>`).join('')}</select></div>
+          <div class="fg"><label>Fecha de compra</label><input type="date" class="ep-tc-fecha" value="${tc.fechaCompra || ''}"></div>
+          <div class="fg"><label>Descripción</label><input type="text" class="ep-tc-desc" value="${(tc.d || '').replace(/"/g, '&quot;')}"></div>
+          <div class="fg"><label>Monto total</label><div class="amt-wrap"><span class="amt-prefix">$</span><input type="text" class="ep-tc-monto" value="${Number(tc.mt).toLocaleString('es-CL')}" oninput="fmtEditAmt(this)" inputmode="numeric"></div></div>
+          <div class="fg"><label>Número de cuotas</label><input type="number" class="ep-tc-cuotas" value="${tc.n}" min="1" max="72"></div>
+        </div>
+        <div class="edit-actions">
+          <button class="btn-save-edit" onclick="saveEditTC('${tc.id}')">Guardar</button>
+          <button class="btn-cancel-edit" onclick="closeEditTC('${tc.id}')">Cancelar</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
+}
+
+let editingTCId = null;
+function openEditTC(id) {
+  document.querySelectorAll('.edit-panel.open').forEach(p => p.classList.remove('open'));
+  if (editingTCId === id) { editingTCId = null; return; }
+  editingTCId = id;
+  const panel = document.getElementById('ep_tc_' + id);
+  if (panel) panel.classList.add('open');
+}
+function closeEditTC(id) {
+  const panel = document.getElementById('ep_tc_' + id);
+  if (panel) panel.classList.remove('open');
+  editingTCId = null;
+}
+async function saveEditTC(id) {
+  const panel = document.getElementById('ep_tc_' + id);
+  const tarjetaId = panel.querySelector('.ep-tc-tarjeta').value;
+  const fechaCompra = panel.querySelector('.ep-tc-fecha').value;
+  const desc = panel.querySelector('.ep-tc-desc').value.trim();
+  const montoEl = panel.querySelector('.ep-tc-monto');
+  const montoTotal = parseFloat((montoEl.dataset.raw || montoEl.value.replace(/\./g, '')).replace(/\D/g, '')) || 0;
+  const cuotas = parseInt(panel.querySelector('.ep-tc-cuotas').value) || 1;
+  if (!montoTotal || montoTotal <= 0) { alert('Ingresa un monto válido.'); return; }
+  if (!fechaCompra) { alert('Selecciona la fecha de compra.'); return; }
+
+  const ciclo = calcCiclo(fechaCompra, tarjetaId);
+  const sk = ciclo ? ciclo.mesCierre : mk(cY, cM + 1);
+  const cuotaMensual = Math.round(montoTotal / cuotas);
+
+  const idx = aTC.findIndex(t => t.id === id);
+  if (idx >= 0) aTC[idx] = { ...aTC[idx], d: desc, mt: montoTotal, n: cuotas, cm: cuotaMensual, sk, tarjetaId, fechaCompra };
+
+  sync('pnd', 'Guardando cambios...');
+  const ok = await asWrite({ tipo: 'edit_tc', id, descripcion: desc, montoTotal, cuotas, cuotaMensual, mesInicio: sk, tarjetaId, fechaCompra });
+  sync(ok ? 'ok' : 'err', ok ? 'Compra TC actualizada ✓' : 'Error al guardar');
+  closeEditTC(id);
+  renderAll();
 }
 
 // Punto de entrada principal de renderizado: recalcula las métricas del mes
@@ -1354,6 +1473,30 @@ async function delTC(i) {
   aTC.splice(i, 1);
   const ok = await asWrite({ tipo: 'delete_tc', id: tc.id });
   sync(ok ? 'ok' : 'err', ok ? 'Eliminado ✓' : 'Error');
+  renderAll();
+}
+
+// Borra TODOS los gastos e ingresos guardados (de todos los meses). No toca
+// tarjetas, compras en cuotas, recurrentes ni metas de ahorro. Doble
+// confirmación porque es irreversible.
+async function deleteAllTransactions() {
+  const totalGastos = Object.values(aD).flat().length;
+  const totalIngresos = Object.values(aI).flat().length;
+  if (!totalGastos && !totalIngresos) { alert('No hay gastos ni ingresos guardados.'); return; }
+
+  if (!confirm(`Esto borrará TODOS los gastos (${totalGastos}) e ingresos (${totalIngresos}) de todos los meses. Esta acción no se puede deshacer. ¿Continuar?`)) return;
+  const texto = prompt('Para confirmar, escribe BORRAR TODO (en mayúsculas):');
+  if (texto !== 'BORRAR TODO') { alert('Cancelado — el texto no coincidió.'); return; }
+
+  sync('pnd', 'Borrando todos los gastos e ingresos...');
+  const ok = await asWrite({ tipo: 'delete_all_gastos_ingresos' });
+  if (ok) {
+    aD = {};
+    aI = {};
+    sync('ok', 'Todos los gastos e ingresos fueron eliminados ✓');
+  } else {
+    sync('err', 'Error al borrar');
+  }
   renderAll();
 }
 
